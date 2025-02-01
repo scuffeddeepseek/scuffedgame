@@ -219,6 +219,38 @@
             cursor: not-allowed;
         }
 
+        #item-slots {
+            order: 7;
+            margin: 20px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .item-slot {
+            background: #2d2d2d;
+            border: 2px solid #4d4d4d;
+            padding: 15px;
+            border-radius: 8px;
+            min-height: 80px;
+        }
+
+        .item-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .item-rarity-normal { color: #ffffff; }
+        .item-rarity-gold { color: #ffd700; }
+        .item-rarity-unique { color: #ff4500; }
+
+        .item-effect {
+            font-size: 0.9em;
+            color: #e6d4a6;
+        }
+
         @keyframes glow {
             0% { filter: brightness(100%); }
             50% { filter: brightness(130%); }
@@ -315,12 +347,18 @@
 
     <div id="boss-panel">
         <div id="boss-header">Boss Challenge</div>
-        <div id="boss-timer">Time remaining: <span id="boss-time">03:00</span></div>
+        <div id="boss-timer">Time remaining: <span id="boss-time">02:00</span></div>
         <div id="boss-progress">
             <div id="boss-progress-bar"></div>
         </div>
         <div id="boss-target">Target: <span id="boss-target-amount">0</span></div>
         <button id="start-boss" onclick="startBossEncounter()">Start Challenge</button>
+    </div>
+
+    <div id="item-slots">
+        <div class="item-slot" id="slot1"></div>
+        <div class="item-slot" id="slot2"></div>
+        <div class="item-slot" id="slot3"></div>
     </div>
 
     <script>
@@ -354,10 +392,66 @@
                 level: 0,
                 active: false,
                 startTime: 0,
-                timeLimit: 180000,
+                timeLimit: 120000, // 2 minutes
                 currentTarget: 0,
                 startAmount: 0,
                 unlockThresholds: [10000, 25000, 100000, 250000]
+            },
+            items: [],
+            itemEffects: {
+                clickMultiplier: 1,
+                autoClickerMultiplier: 1
+            }
+        };
+
+        const items = {
+            seraphsRod: {
+                name: "Seraph's Rod",
+                effects: {
+                    normal: { click: 1.03, auto: 1.03 },
+                    gold: { click: 1.06, auto: 1.06 },
+                    unique: { click: 1.09, auto: 1.09 }
+                }
+            },
+            chaosAmplifier: {
+                name: "Chaos Amplifier",
+                effects: {
+                    normal: { click: 1.05, auto: 1.02 },
+                    gold: { click: 1.10, auto: 1.05 },
+                    unique: { click: 1.15, auto: 1.10 }
+                }
+            },
+            temporalAccelerator: {
+                name: "Temporal Accelerator",
+                effects: {
+                    normal: { click: 1.02, auto: 1.05 },
+                    gold: { click: 1.05, auto: 1.10 },
+                    unique: { click: 1.08, auto: 1.15 }
+                }
+            },
+            voidEssence: {
+                name: "Void Essence",
+                effects: {
+                    normal: { click: 1.04, auto: 1.04 },
+                    gold: { click: 1.08, auto: 1.08 },
+                    unique: { click: 1.12, auto: 1.12 }
+                }
+            },
+            celestialBlessing: {
+                name: "Celestial Blessing",
+                effects: {
+                    normal: { click: 1.06, auto: 1.03 },
+                    gold: { click: 1.12, auto: 1.06 },
+                    unique: { click: 1.18, auto: 1.09 }
+                }
+            },
+            abyssalHeart: {
+                name: "Abyssal Heart",
+                effects: {
+                    normal: { click: 1.03, auto: 1.06 },
+                    gold: { click: 1.06, auto: 1.12 },
+                    unique: { click: 1.09, auto: 1.18 }
+                }
             }
         };
 
@@ -365,12 +459,69 @@
         let vaalInterval;
         let bossInterval;
 
+        function calculateItemEffects() {
+            let clickMulti = 1;
+            let autoMulti = 1;
+            
+            gameState.items.forEach(item => {
+                clickMulti *= item.effects.click;
+                autoMulti *= item.effects.auto;
+            });
+
+            gameState.itemEffects.clickMultiplier = clickMulti;
+            gameState.itemEffects.autoClickerMultiplier = autoMulti;
+        }
+
+        function generateLoot() {
+            if(gameState.items.length >= 3) return;
+
+            const itemKeys = Object.keys(items);
+            const chosenItem = items[itemKeys[Math.floor(Math.random() * itemKeys.length)]];
+            
+            const rarityRoll = Math.random();
+            let rarity = 'normal';
+            if(rarityRoll < 0.15) rarity = 'unique';
+            else if(rarityRoll < 0.50) rarity = 'gold';
+
+            const newItem = {
+                name: chosenItem.name,
+                rarity: rarity,
+                effects: chosenItem.effects[rarity]
+            };
+
+            gameState.items.push(newItem);
+            if(gameState.items.length > 3) gameState.items.shift();
+            calculateItemEffects();
+            updateItemDisplay();
+        }
+
+        function updateItemDisplay() {
+            const slots = ['slot1', 'slot2', 'slot3'];
+            slots.forEach((slotId, index) => {
+                const slot = document.getElementById(slotId);
+                if(gameState.items[index]) {
+                    const item = gameState.items[index];
+                    slot.innerHTML = `
+                        <div class="item-name item-rarity-${item.rarity}">${item.name}</div>
+                        <div class="item-effect">
+                            +${(item.effects.click * 100 - 100).toFixed(0)}% Clicks<br>
+                            +${(item.effects.auto * 100 - 100).toFixed(0)}% Auto
+                        </div>
+                        <small>(${item.rarity.charAt(0).toUpperCase() + item.rarity.slice(1)})</small>
+                    `;
+                } else {
+                    slot.innerHTML = '';
+                }
+            });
+        }
+
         setInterval(() => {
             if (gameState.scrollCount > 0 && !gameState.boss.active) {
                 const benchMulti = 1 + (2 * gameState.upgrades.craftingBench.count);
                 const altarMulti = 1 + (0.5 * gameState.upgrades.eldritchAltar.count);
                 const prestigeMulti = 1 + (0.10 * gameState.prestigeCount);
-                const autoClickerPower = gameState.scrollCount * benchMulti * altarMulti * prestigeMulti;
+                const autoClickerPower = gameState.scrollCount * benchMulti * altarMulti * prestigeMulti * 
+                                      gameState.itemEffects.autoClickerMultiplier;
                 
                 gameState.divineCount += autoClickerPower;
                 gameState.totalEarned += autoClickerPower;
@@ -445,6 +596,7 @@
             multiplier *= 1 + (0.5 * ea);
             multiplier *= vaalMultiplier;
             multiplier *= 1 + (0.10 * gameState.prestigeCount);
+            multiplier *= gameState.itemEffects.clickMultiplier;
             
             return multiplier;
         }
@@ -544,10 +696,13 @@
                     }
                 }
                 
+                gameState.items = [];
+                calculateItemEffects();
                 clearInterval(vaalInterval);
                 vaalMultiplier = 1;
                 
                 updateDisplay();
+                updateItemDisplay();
             }
         }
 
@@ -592,6 +747,7 @@
             if(success) {
                 gameState.divineCount += gameState.boss.currentTarget * 0.5;
                 gameState.boss.level++;
+                generateLoot();
                 alert(`Challenge succeeded! +${(gameState.boss.currentTarget * 0.5).toLocaleString()} Divine Orbs`);
             } else {
                 gameState.divineCount = Math.floor(gameState.divineCount * 0.8);
@@ -631,11 +787,15 @@
 
             const bossPanel = document.getElementById('boss-panel');
             const canChallenge = gameState.totalEarned >= gameState.boss.unlockThresholds[gameState.boss.level] && 
-                               !gameState.boss.active &&
                                gameState.boss.level < gameState.boss.unlockThresholds.length;
             
-            bossPanel.style.display = canChallenge ? 'block' : 'none';
-            if(canChallenge) {
+            const shouldShow = gameState.boss.active || canChallenge;
+            bossPanel.style.display = shouldShow ? 'block' : 'none';
+
+            if(gameState.boss.active) {
+                document.getElementById('boss-header').textContent = 
+                    `Boss Challenge ${gameState.boss.level + 1} [ACTIVE]`;
+            } else if(canChallenge) {
                 document.getElementById('boss-header').textContent = 
                     `Boss Challenge ${gameState.boss.level + 1}`;
             }
@@ -650,6 +810,7 @@
         });
 
         updateDisplay();
+        updateItemDisplay();
     </script>
 </body>
 </html>
