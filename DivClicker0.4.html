@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PoE Clicker - Divine Orb Edition</title>
+    <style>
+        body {
+            background: #1a1a1a;
+            color: #e6d4a6;
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            user-select: none;
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #admin-panel {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 5px;
+            z-index: 1000;
+        }
+
+        #admin-input {
+            width: 120px;
+            padding: 5px;
+            background: #2d2d2d;
+            border: 1px solid #4d4d4d;
+            color: #e6d4a6;
+            border-radius: 4px;
+        }
+
+        #exit-admin, #trigger-mirror {
+            display: none;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #exit-admin { background: #d9534f; color: white; }
+        #trigger-mirror { background: #4CAF50; color: white; }
+
+        #currency {
+            font-size: 24px;
+            margin: 20px;
+            order: 1;
+        }
+
+        #divine-container {
+            margin: 20px;
+            cursor: pointer;
+            order: 2;
+        }
+
+        #divine-orb {
+            font-size: 80px;
+            text-shadow: 0 0 15px #ffd700;
+            animation: glow 2s infinite;
+        }
+
+        .shop {
+            order: 3;
+            margin: 20px;
+        }
+
+        .shop-item {
+            background: #2d2d2d;
+            border: 2px solid #4d4d4d;
+            padding: 15px;
+            margin: 10px;
+            border-radius: 8px;
+            display: inline-block;
+        }
+
+        #upgrades {
+            order: 4;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            padding: 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .upgrade {
+            background: #2d2d2d;
+            border: 2px solid #4d4d4d;
+            padding: 15px;
+            border-radius: 8px;
+            transition: all 0.3s;
+            opacity: 0.7;
+            cursor: pointer;
+        }
+
+        .upgrade.unlocked {
+            opacity: 1;
+            border-color: #c5a258;
+            background: #3d3d3d;
+        }
+
+        .firework {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #ffffff;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: explode 1s forwards;
+        }
+
+        .mirror-event {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3em;
+            color: #ffd700;
+            text-shadow: 0 0 20px #ffffff;
+            animation: mirror-glow 2s ease-out;
+            z-index: 1000;
+        }
+
+        .click-effect {
+            position: absolute;
+            pointer-events: none;
+            color: #ffd700;
+            font-size: 20px;
+            text-shadow: 0 0 5px #000;
+            animation: floatUp 1s forwards;
+        }
+
+        #prestige-section {
+            order: 5;
+            margin: 20px;
+            padding: 20px;
+            background: #2d2d2d;
+            border: 2px solid #4d4d4d;
+            border-radius: 8px;
+            display: none;
+        }
+
+        #prestige-button {
+            background: #9c27b0;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1.1em;
+        }
+
+        #prestige-button:hover {
+            background: #6a1b9a;
+        }
+
+        #prestige-multiplier {
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #e6d4a6;
+        }
+
+        #boss-panel {
+            order: 6;
+            margin: 20px;
+            padding: 20px;
+            background: #2d2d2d;
+            border: 2px solid #4d4d4d;
+            border-radius: 8px;
+            display: none;
+        }
+
+        #boss-header {
+            font-size: 1.5em;
+            color: #ff4444;
+            margin-bottom: 10px;
+        }
+
+        #boss-timer {
+            font-size: 1.2em;
+            color: #e6d4a6;
+        }
+
+        #boss-progress {
+            height: 20px;
+            background: #1a1a1a;
+            border-radius: 10px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+
+        #boss-progress-bar {
+            height: 100%;
+            background: #4CAF50;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        #start-boss {
+            background: #d32f2f;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1.1em;
+            margin-top: 10px;
+        }
+
+        #start-boss:hover:not(:disabled) {
+            background: #9a0007;
+        }
+
+        #start-boss:disabled {
+            background: #5f5f5f;
+            cursor: not-allowed;
+        }
+
+        @keyframes glow {
+            0% { filter: brightness(100%); }
+            50% { filter: brightness(130%); }
+            100% { filter: brightness(100%); }
+        }
+
+        @keyframes explode {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(5); opacity: 0; }
+        }
+
+        @keyframes mirror-glow {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0); }
+            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-50px); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div id="admin-panel">
+        <input type="password" id="admin-input" placeholder="Enter admin code">
+        <button id="exit-admin" onclick="exitAdminMode()">Exit Admin</button>
+        <button id="trigger-mirror" onclick="triggerMirrorEvent()">Trigger Mirror</button>
+    </div>
+
+    <div id="currency">Divine Orbs: <span id="count">0</span></div>
+    
+    <div id="divine-container" onclick="clickDivine(event)">
+        <div id="divine-orb">◆</div>
+        <div>Click the Divine Orb!</div>
+    </div>
+
+    <div class="shop">
+        <div class="shop-item" onclick="buyAutoClicker()">
+            <h3>Cursed Scroll (Auto-Clicker)</h3>
+            <div>Cost: <span id="scroll-cost">10</span> Divine Orbs</div>
+            <div>Owned: <span id="scroll-count">0</span></div>
+        </div>
+    </div>
+
+    <div id="upgrades">
+        <div class="upgrade" id="golden-hands" onclick="buyUpgrade(this.id)">
+            <h3>Golden Hands ✨</h3>
+            <div class="effect">+2x Click Power per level</div>
+            <div class="cost">Cost: <span>100</span></div>
+            <div>Owned: <span class="count">0</span></div>
+        </div>
+
+        <div class="upgrade" id="crafting-bench" onclick="buyUpgrade(this.id)">
+            <h3>Artisan's Bench ⚒️</h3>
+            <div class="effect">+2x Auto-Clicker Power</div>
+            <div class="cost">Cost: <span>500</span></div>
+            <div>Owned: <span class="count">0</span></div>
+        </div>
+
+        <div class="upgrade" id="map-device" onclick="buyUpgrade(this.id)">
+            <h3>Map Device 🗺️</h3>
+            <div class="effect">+50% Click Speed</div>
+            <div class="cost">Cost: <span>2,000</span></div>
+            <div>Owned: <span class="count">0</span></div>
+        </div>
+
+        <div class="upgrade" id="mirror" onclick="buyUpgrade(this.id)">
+            <h3>Mirror 🪞</h3>
+            <div class="effect">+5% 10x Click Chance</div>
+            <div class="cost">Cost: <span>10,000</span></div>
+            <div>Owned: <span class="count">0</span></div>
+        </div>
+
+        <div class="upgrade" id="vaal-temple" onclick="buyUpgrade(this.id)">
+            <h3>Vaal Temple ⚰️</h3>
+            <div class="effect">5x Click Multiplier for 1min (Charge: <span id="vaal-charge">0</span>/240)</div>
+            <div class="cost">Cost: <span>15,000</span></div>
+            <div>Owned: <span class="count">0</span></div>
+        </div>
+
+        <div class="upgrade" id="eldritch-altar" onclick="buyUpgrade(this.id)">
+            <h3>Eldritch Altar 🌀</h3>
+            <div class="effect">+50% All Multipliers</div>
+            <div class="cost">Cost: <span>25,000</span></div>
+            <div>Owned: <span class="count">0</span></div>
+        </div>
+    </div>
+
+    <div id="prestige-section">
+        <button id="prestige-button" onclick="prestige()">Ascend to Higher Realm</button>
+        <div id="prestige-multiplier">Prestige Multiplier: 10% per Ascension (Current: <span id="prestige-count">0</span>x)</div>
+    </div>
+
+    <div id="boss-panel">
+        <div id="boss-header">Boss Challenge</div>
+        <div id="boss-timer">Time remaining: <span id="boss-time">03:00</span></div>
+        <div id="boss-progress">
+            <div id="boss-progress-bar"></div>
+        </div>
+        <div id="boss-target">Target: <span id="boss-target-amount">0</span></div>
+        <button id="start-boss" onclick="startBossEncounter()">Start Challenge</button>
+    </div>
+
+    <script>
+        function hyphenToCamel(str) {
+            return str.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+        }
+
+        let gameState = {
+            adminMode: false,
+            divineCount: 0,
+            totalEarned: 0,
+            scrollCost: 10,
+            scrollCount: 0,
+            mirrorChance: 0.01,
+            prestigeCount: 0,
+            upgrades: {
+                goldenHands: { count: 0, baseCost: 100, costMultiplier: 1.5 },
+                craftingBench: { count: 0, baseCost: 500, costMultiplier: 1.5 },
+                mapDevice: { count: 0, baseCost: 2000, costMultiplier: 1.8 },
+                mirror: { count: 0, baseCost: 10000, costMultiplier: 2 },
+                vaalTemple: { 
+                    count: 0, 
+                    baseCost: 15000, 
+                    costMultiplier: 2.2,
+                    accumulated: 0,
+                    active: false
+                },
+                eldritchAltar: { count: 0, baseCost: 25000, costMultiplier: 2.5 }
+            },
+            boss: {
+                level: 0,
+                active: false,
+                startTime: 0,
+                timeLimit: 180000,
+                currentTarget: 0,
+                startAmount: 0,
+                unlockThresholds: [10000, 25000, 100000, 250000]
+            }
+        };
+
+        let vaalMultiplier = 1;
+        let vaalInterval;
+        let bossInterval;
+
+        setInterval(() => {
+            if (gameState.scrollCount > 0 && !gameState.boss.active) {
+                const benchMulti = 1 + (2 * gameState.upgrades.craftingBench.count);
+                const altarMulti = 1 + (0.5 * gameState.upgrades.eldritchAltar.count);
+                const prestigeMulti = 1 + (0.10 * gameState.prestigeCount);
+                const autoClickerPower = gameState.scrollCount * benchMulti * altarMulti * prestigeMulti;
+                
+                gameState.divineCount += autoClickerPower;
+                gameState.totalEarned += autoClickerPower;
+                updateDisplay();
+            }
+        }, 1000);
+
+        function startVaalAccumulation() {
+            vaalInterval = setInterval(() => {
+                const vt = gameState.upgrades.vaalTemple;
+                if(vt.count > 0 && !vt.active) {
+                    const points = Math.floor(Math.random() * 20) + 1;
+                    vt.accumulated = Math.min(vt.accumulated + points, 240);
+                    updateVaalDisplay();
+                }
+            }, 3000);
+        }
+
+        function activateVaalTemple() {
+            const vt = gameState.upgrades.vaalTemple;
+            if(vt.count > 0 && vt.accumulated >= 240 && !vt.active) {
+                vt.active = true;
+                vaalMultiplier = 5;
+                vt.accumulated = 0;
+                
+                updateVaalDisplay();
+                setTimeout(() => {
+                    vt.active = false;
+                    vaalMultiplier = 1;
+                    updateVaalDisplay();
+                }, 60000);
+            }
+        }
+
+        function updateVaalDisplay() {
+            const vt = gameState.upgrades.vaalTemple;
+            const element = document.getElementById('vaal-temple');
+            if(element) {
+                document.getElementById('vaal-charge').textContent = vt.accumulated;
+                element.style.background = vt.active ? '#4a1a1a' : '#2d2d2d';
+                element.querySelector('.effect').style.color = vt.active ? '#ff4444' : '#e6d4a6';
+                element.style.cursor = (vt.count > 0 && vt.accumulated >= 240 && !vt.active) ? 'pointer' : 'default';
+            }
+        }
+
+        document.getElementById('admin-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && e.target.value === 'admin') {
+                gameState.adminMode = true;
+                document.getElementById('exit-admin').style.display = 'inline-block';
+                document.getElementById('trigger-mirror').style.display = 'inline-block';
+                e.target.style.display = 'none';
+                updateDisplay();
+            }
+        });
+
+        function exitAdminMode() {
+            gameState.adminMode = false;
+            document.getElementById('exit-admin').style.display = 'none';
+            document.getElementById('trigger-mirror').style.display = 'none';
+            document.getElementById('admin-input').style.display = 'inline-block';
+            updateDisplay();
+        }
+
+        function getMultiplier() {
+            let multiplier = 1;
+            const gh = gameState.upgrades.goldenHands.count;
+            const mi = gameState.upgrades.mirror.count;
+            const ea = gameState.upgrades.eldritchAltar.count;
+            
+            multiplier *= 1 + gh;
+            if(mi > 0 && Math.random() < (0.05 * mi)) multiplier *= 10;
+            multiplier *= 1 + (0.5 * ea);
+            multiplier *= vaalMultiplier;
+            multiplier *= 1 + (0.10 * gameState.prestigeCount);
+            
+            return multiplier;
+        }
+
+        function clickDivine(event) {
+            const baseAmount = 1;
+            let multiplier = getMultiplier();
+            
+            if(Math.random() < gameState.mirrorChance) {
+                triggerMirrorEvent();
+            }
+
+            const added = baseAmount * multiplier;
+            gameState.divineCount += added;
+            gameState.totalEarned += added;
+
+            const clickEffect = document.createElement('div');
+            clickEffect.className = 'click-effect';
+            clickEffect.textContent = `+${added.toFixed(1)}`;
+            clickEffect.style.left = `${event.clientX}px`;
+            clickEffect.style.top = `${event.clientY}px`;
+            document.body.appendChild(clickEffect);
+            setTimeout(() => clickEffect.remove(), 1000);
+
+            updateDisplay();
+        }
+
+        function triggerMirrorEvent() {
+            gameState.divineCount += 1000;
+            createFireworks();
+            showMirrorText();
+            updateDisplay();
+        }
+
+        function createFireworks() {
+            for(let i = 0; i < 50; i++) {
+                const firework = document.createElement('div');
+                firework.className = 'firework';
+                firework.style.left = `${Math.random() * 100}%`;
+                firework.style.top = `${Math.random() * 100}%`;
+                firework.style.background = `hsl(${Math.random() * 360}, 100%, 50%)`;
+                document.body.appendChild(firework);
+                setTimeout(() => firework.remove(), 1000);
+            }
+        }
+
+        function showMirrorText() {
+            const mirrorText = document.createElement('div');
+            mirrorText.className = 'mirror-event';
+            mirrorText.textContent = 'MIRROR OF KALANDRA!';
+            document.body.appendChild(mirrorText);
+            setTimeout(() => mirrorText.remove(), 2000);
+        }
+
+        function buyAutoClicker() {
+            if (gameState.adminMode || gameState.divineCount >= gameState.scrollCost) {
+                if (!gameState.adminMode) {
+                    gameState.divineCount -= gameState.scrollCost;
+                    gameState.scrollCost = Math.floor(gameState.scrollCost * 1.5);
+                }
+                gameState.scrollCount++;
+                updateDisplay();
+            }
+        }
+
+        function buyUpgrade(upgradeId) {
+            const camelId = hyphenToCamel(upgradeId);
+            const upgrade = gameState.upgrades[camelId];
+            const currentCost = upgrade.baseCost * Math.pow(upgrade.costMultiplier, upgrade.count);
+            
+            if (gameState.adminMode || gameState.divineCount >= currentCost) {
+                if (!gameState.adminMode) {
+                    gameState.divineCount -= currentCost;
+                }
+                upgrade.count++;
+                
+                if(upgradeId === 'vaal-temple' && upgrade.count === 1) {
+                    startVaalAccumulation();
+                }
+                
+                updateDisplay();
+            }
+        }
+
+        function prestige() {
+            if (gameState.upgrades.eldritchAltar.count >= 5) {
+                gameState.prestigeCount++;
+                
+                gameState.divineCount = 0;
+                gameState.scrollCount = 0;
+                gameState.scrollCost = 10;
+                
+                for (let upgrade in gameState.upgrades) {
+                    gameState.upgrades[upgrade].count = 0;
+                    if (gameState.upgrades[upgrade].accumulated !== undefined) {
+                        gameState.upgrades[upgrade].accumulated = 0;
+                    }
+                }
+                
+                clearInterval(vaalInterval);
+                vaalMultiplier = 1;
+                
+                updateDisplay();
+            }
+        }
+
+        function startBossEncounter() {
+            if(gameState.boss.active || gameState.boss.level >= gameState.boss.unlockThresholds.length) return;
+            
+            gameState.boss.active = true;
+            gameState.boss.startTime = Date.now();
+            gameState.boss.currentTarget = 15000 * Math.pow(1.5, gameState.boss.level);
+            gameState.boss.startAmount = gameState.divineCount;
+            
+            document.getElementById('start-boss').disabled = true;
+            document.getElementById('boss-target-amount').textContent = 
+                gameState.boss.currentTarget.toLocaleString();
+            
+            bossInterval = setInterval(() => {
+                const elapsed = Date.now() - gameState.boss.startTime;
+                const remaining = gameState.boss.timeLimit - elapsed;
+                
+                const minutes = Math.floor(remaining / 60000);
+                const seconds = Math.floor((remaining % 60000) / 1000);
+                document.getElementById('boss-time').textContent = 
+                    `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                
+                const collected = gameState.divineCount - gameState.boss.startAmount;
+                const progress = Math.min((collected / gameState.boss.currentTarget) * 100, 100);
+                document.getElementById('boss-progress-bar').style.width = `${progress}%`;
+                
+                if(collected >= gameState.boss.currentTarget) {
+                    endBossEncounter(true);
+                } else if(remaining <= 0) {
+                    endBossEncounter(false);
+                }
+            }, 100);
+        }
+
+        function endBossEncounter(success) {
+            clearInterval(bossInterval);
+            gameState.boss.active = false;
+            document.getElementById('start-boss').disabled = false;
+            
+            if(success) {
+                gameState.divineCount += gameState.boss.currentTarget * 0.5;
+                gameState.boss.level++;
+                alert(`Challenge succeeded! +${(gameState.boss.currentTarget * 0.5).toLocaleString()} Divine Orbs`);
+            } else {
+                gameState.divineCount = Math.floor(gameState.divineCount * 0.8);
+                alert(`Challenge failed! Lost 20% of Divine Orbs`);
+            }
+            
+            updateDisplay();
+        }
+
+        function updateDisplay() {
+            document.getElementById('count').textContent = gameState.divineCount.toLocaleString();
+            document.getElementById('scroll-cost').textContent = 
+                gameState.adminMode ? 'FREE' : gameState.scrollCost.toLocaleString();
+            document.getElementById('scroll-count').textContent = gameState.scrollCount.toLocaleString();
+
+            document.querySelectorAll('.upgrade').forEach(upgrade => {
+                const camelId = hyphenToCamel(upgrade.id);
+                const upgradeData = gameState.upgrades[camelId];
+                const currentCost = upgradeData.baseCost * Math.pow(upgradeData.costMultiplier, upgradeData.count);
+                
+                upgrade.querySelector('.cost span').textContent = 
+                    gameState.adminMode ? 'FREE' : Math.round(currentCost).toLocaleString();
+                upgrade.querySelector('.count').textContent = upgradeData.count;
+                upgrade.classList.toggle('unlocked', gameState.adminMode || gameState.divineCount >= currentCost);
+            });
+            
+            const prestigeSection = document.getElementById('prestige-section');
+            const canPrestige = gameState.upgrades.eldritchAltar.count >= 5;
+            prestigeSection.style.display = canPrestige ? 'block' : 'none';
+            document.getElementById('prestige-count').textContent = 
+                (gameState.prestigeCount * 10).toLocaleString() + '%';
+            
+            document.getElementById('currency').innerHTML = 
+                `Divine Orbs: <span id="count">${gameState.divineCount.toLocaleString()}</span>` +
+                (gameState.prestigeCount > 0 ? 
+                    `<br><small>Prestige Multiplier: ${(gameState.prestigeCount * 10)}%</small>` : '');
+
+            const bossPanel = document.getElementById('boss-panel');
+            const canChallenge = gameState.totalEarned >= gameState.boss.unlockThresholds[gameState.boss.level] && 
+                               !gameState.boss.active &&
+                               gameState.boss.level < gameState.boss.unlockThresholds.length;
+            
+            bossPanel.style.display = canChallenge ? 'block' : 'none';
+            if(canChallenge) {
+                document.getElementById('boss-header').textContent = 
+                    `Boss Challenge ${gameState.boss.level + 1}`;
+            }
+
+            updateVaalDisplay();
+        }
+
+        document.getElementById('vaal-temple').addEventListener('click', function(e) {
+            if(gameState.upgrades.vaalTemple.count > 0) {
+                activateVaalTemple();
+            }
+        });
+
+        updateDisplay();
+    </script>
+</body>
+</html>
